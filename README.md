@@ -6,6 +6,9 @@
 
 AMIT-EXPRESSO is an Arduino-based project that transforms a standard expression pedal into a programmable USB MIDI controller. It also incorporates a sustain/damper pedal input, making it a versatile tool for musicians and producers. The project is designed to be used with an Arduino Micro Pro (Leonardo) board.
 
+I directly converted a normal Nektar NX-P Expression Pedal into Usb Pedal Py remving its original cable in putting the arduino board with a micro usb cable atached to it inside the pedal itself. However you can use this with any pedal by using a stereo input jack and wiring its three pins (tip , ring and sleeve) as per the wiring diagram image. and mounting that a lgon with arduino controller into some box. (use a plastic or insulated box for sustain jack (mono audio jack) so it does not short with ground of expession jack)
+
+
 **Key Features:**
 
 *   **Expression Pedal Input:** Converts analog expression pedal movements into MIDI Control Change (CC) messages.
