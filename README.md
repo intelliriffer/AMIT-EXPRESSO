@@ -1,4 +1,4 @@
-# AMIT-EXPRESSO: Programmable USB MIDI Expression Pedal Converter
+# AMITS-EXPRESSO: Programmable USB MIDI Expression & Sustain Pedal Converter
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
