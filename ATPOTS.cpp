@@ -64,27 +64,78 @@ ATPOT::ATPOT(byte pin)
 }
 
 /**
- * @brief Reads the analog value from the potentiometer pin with averaging.
+ * @brief Sets the number of readings to be averaged for the potentiometer.
  *
- * @return The averaged analog reading from the potentiometer.
+ * @param num The number of readings to average.
  *
- * @details Reads the analog value from the specified pin multiple times and returns the average.
- *          This helps to reduce noise and improve the accuracy of the reading.
+ * @details This function sets the number of analog readings that will be taken and averaged
+ *          in the `aRead()` function. A higher number of readings will result in a smoother,
+ *          but potentially slower, response.
+ */
+void ATPOT::setNumReadings(int num)
+{
+    _numReadings = num;
+}
+
+/**
+ * @brief Sets the debounce threshold for the potentiometer.
+ *
+ * @param threshold The debounce threshold value.
+ *
+ * @details This function sets the threshold used for debouncing in the `aRead()` function.
+ *          The debounce threshold determines how much the reading must change before it is
+ *          considered a significant change and not just noise.
+ */
+void ATPOT::setDebounceThreshold(int threshold)
+{
+    _debounceThreshold = threshold;
+}
+
+/**
+ * @brief Reads the analog value from the potentiometer pin with averaging and debouncing.
+ *
+ * @return The averaged and debounced analog reading from the potentiometer.
+ *
+ * @details Reads the analog value from the specified pin multiple times, calculates the average,
+ *          rejects outliers (highest and lowest values), and applies debouncing.
+ *          Debouncing prevents small fluctuations in the reading from being registered as changes.
  */
 int ATPOT::aRead()
 {
-    int i;
-    int rvalue = 0;
-    int numReadings = 10;
+    // debouncing was improved from gemini suggestions.
+    unsigned long startTime = millis();
+    int readings[_numReadings]; // Array to store readings
+    int total = 0;
+    int minVal = 1024; // Initialize to a value greater than the max possible reading
+    int maxVal = -1; // Initialize to a value less than the min possible reading
+    static int lastAverage = 0; // Static variable to remember the last average
 
-    for (i = 0; i < numReadings; i++) {
-
-        rvalue = rvalue + analogRead(_pin);
-
-        delay(1);
+    for (int i = 0; i < _numReadings; i++) {
+        readings[i] = analogRead(_pin);
+        total += readings[i];
+        if (readings[i] < minVal) {
+            minVal = readings[i];
+        }
+        if (readings[i] > maxVal) {
+            maxVal = readings[i];
+        }
     }
-    rvalue = rvalue / numReadings;
-    return rvalue;
+
+    // Remove the highest and lowest values (outlier rejection)
+    total -= (minVal + maxVal);
+
+    // Calculate the average of the remaining readings
+    int currentAverage = total / (_numReadings - 2);
+
+    // Debouncing: Check if the change is significant
+    if (abs(currentAverage - lastAverage) < _debounceThreshold) {
+        // Change is too small, consider it noise, return the last average
+        return lastAverage;
+    } else {
+        // Significant change, update the last average and return the new average
+        lastAverage = currentAverage;
+        return currentAverage;
+    }
 }
 
 /**
@@ -166,6 +217,7 @@ float ATPOT::getDeadZone() const
  *
  * @details This method initializes the MIDI channel, CC number, and a custom value array.
  *          When the potentiometer's value changes, the mapped index in the `values` array will be used.
+ *          This allows for non-linear mapping of the potentiometer's position to MIDI values.
  */
 void ATMIDICCPOT::INIT(byte ch, byte cc, byte* values, byte count)
 {
@@ -218,6 +270,7 @@ ATMIDICCPOT::ATMIDICCPOT(byte pin, byte ch, byte cc)
  * @details This method is called when the potentiometer's value changes.
  *          It sends a MIDI CC message with the assigned CC number and the mapped value.
  *          If a custom value array is used, the mapped index in the array is used as the value.
+ *          The MIDI message is sent over the hardware serial port.
  */
 void ATMIDICCPOT::changed()
 {

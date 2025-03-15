@@ -56,6 +56,28 @@ public:
     ATPOT(byte pin);
 
     /**
+     * @brief Sets the number of readings to be averaged for the potentiometer.
+     *
+     * @param num The number of readings to average.
+     *
+     * @details This function sets the number of analog readings that will be taken and averaged
+     *          in the `aRead()` function. A higher number of readings will result in a smoother,
+     *          but potentially slower, response.
+     */
+    void setNumReadings(int num);
+
+    /**
+     * @brief Sets the debounce threshold for the potentiometer.
+     *
+     * @param threshold The debounce threshold value.
+     *
+     * @details This function sets the threshold used for debouncing in the `aRead()` function.
+     *          The debounce threshold determines how much the reading must change before it is
+     *          considered a significant change and not just noise.
+     */
+    void setDebounceThreshold(int threshold);
+
+    /**
      * @brief Scans the potentiometer and updates its value.
      *
      * @details Reads the analog value, applies the dead zone, maps the value to the specified range,
@@ -114,12 +136,6 @@ protected:
     virtual void changed();
 
     /**
-     * @brief Reads the potentiometer value (deprecated, use aRead instead).
-     * @deprecated Use aRead() instead.
-     */
-    // int potRead(); // Removed as it's not used and deprecated
-
-    /**
      * @brief The minimum output value of the potentiometer.
      */
     int _minVal = 0;
@@ -151,14 +167,24 @@ protected:
 
 private:
     /**
-     * @brief Reads the analog value from the potentiometer pin with averaging.
+     * @brief Reads the analog value from the potentiometer pin with averaging and debouncing.
      *
-     * @return The averaged analog reading from the potentiometer.
+     * @return The averaged and debounced analog reading from the potentiometer.
      *
-     * @details Reads the analog value from the specified pin multiple times and returns the average.
-     *          This helps to reduce noise and improve the accuracy of the reading.
+     * @details Reads the analog value from the specified pin multiple times, calculates the average,
+     *          rejects outliers (highest and lowest values), and applies debouncing.
+     *          Debouncing prevents small fluctuations in the reading from being registered as changes.
      */
     int aRead();
+
+    /**
+     * @brief The number of readings to be averaged.
+     */
+    int _numReadings = 10;
+    /**
+     * @brief The debounce threshold value.
+     */
+    int _debounceThreshold = 5; // Default debounce threshold
 };
 
 /**
@@ -215,6 +241,7 @@ public:
      *
      * @details This method initializes the MIDI channel, CC number, and a custom value array.
      *          When the potentiometer's value changes, the mapped index in the `values` array will be used.
+     *          This allows for non-linear mapping of the potentiometer's position to MIDI values.
      */
     void INIT(byte ch, byte cc, byte* values, byte count);
 

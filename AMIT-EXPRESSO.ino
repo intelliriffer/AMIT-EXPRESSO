@@ -188,6 +188,8 @@ void setup()
 {
     pinMode(blinker, OUTPUT);
     pinMode(pSUSTAIN, INPUT_PULLUP);
+    POT.setNumReadings(15); // Example: Use 15 readings for averaging
+    POT.setDebounceThreshold(5);
     initPedal();
 
     digitalWrite(blinker, LOW);
