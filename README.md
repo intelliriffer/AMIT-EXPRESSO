@@ -17,27 +17,6 @@ AMIT-EXPRESSO is an Arduino-based project that transforms a standard expression 
 *   **USB MIDI Output:** Sends MIDI messages over USB, making it compatible with most DAWs and MIDI-enabled software.
 * **Customizable Board ID:** Allows for custom board ID and identifiers.
 
-**Hardware Requirements:**
-
-1.  **Arduino Micro Pro (Leonardo):** The microcontroller board.
-2.  **Expression Pedal:** An analog expression pedal with a potentiometer.
-3.  **Mono Input Jack:** For connecting the sustain pedal.
-4.  **10k Resistor:** For the sustain pedal circuit.
-5.  **Connecting Wires:** For wiring the components.
-6.  **Sustain Pedal:** A momentary switch-type sustain pedal.
-
-**Wiring Diagram:**
-
-1.  **Sustain Pedal Circuit:**
-    *   Connect a 10k resistor between pin 2 (`pSUSTAIN`) and Ground (GND) on the Arduino.
-    *   Connect a wire from pin 2 to the tip lug of the mono input jack.
-    *   Connect a wire from the VCC pin to the outer lug of the input jack.
-2.  **Expression Pedal:**
-    *   Connect the ground wire from the expression pedal to GND on the Arduino.
-    *   Connect the center lug wire from the expression pedal to pin A0 (18) on the Arduino.
-    *   Connect the other wire from the expression pedal to VCC on the Arduino.
-    *   **Note:** You might need to swap the VCC and GND wires on the expression pedal if the pedal's response is inverted.
-
 **Software Components:**
 
 1.  **Arduino IDE:** The development environment for programming the Arduino.
@@ -62,7 +41,7 @@ AMIT-EXPRESSO is an Arduino-based project that transforms a standard expression 
     *   `loop()`: Continuously scans the expression pedal, handles the sustain pedal, and processes MIDI input.
 *   **`ATPOTS.h` (Header File):**
     *   Defines the `ATPOT` class for handling potentiometers.
-    *   Defines the `ATMIDICCPOT` class, which inherits from `ATPOT` and adds MIDI CC functionality.
+    *   Defines the `ATMIDICCPOT` class, which inherits from `ATPOT` and adds MIDI CC functionality (Serial midi only).
 *   **`ATPOTS.cpp` (Implementation File):**
     *   Implements the methods of the `ATPOT` and `ATMIDICCPOT` classes.
     *   Includes functions for reading analog values, applying dead zones, mapping values, and sending MIDI CC messages.
@@ -105,13 +84,14 @@ AMIT-EXPRESSO is an Arduino-based project that transforms a standard expression 
 
 **MIDI Control Change (CC) Assignments:**
 
-*   **`setEXP` (CC 33):** Sets the MIDI CC number for the expression pedal. A value of 0 disables the expression pedal.
-*   **`setSustain` (CC 34):** Sets the MIDI CC number for the sustain pedal. A value of 0 disables the sustain pedal.
-*   **`pedalReset` (CC 35):** Resets the pedal to default settings if an even value is received.
-*   **`pedalSave` (CC 36):** Saves the current configuration to EEPROM if a value of 127 is received.
-*   **`pedalLoad` (CC 37):** Loads the saved configuration from EEPROM if a value of 127 is received.
-*   **`SUSTAIN_CC` (Default CC 64):** Default CC number for the sustain pedal.
-*   **`EXP_CC` (Default CC 11):** Default CC number for the expression pedal.
+*   **CC 33 :** Sets the MIDI CC number (0-110) for the expression pedal. A value of 0 disables the expression pedal.
+*   **CC 34 :** Sets the MIDI CC number (0-110) for the sustain pedal. A value of 0 disables the sustain pedal.
+*   **CC 35 :** Resets the pedal to default settings if an even value is received.
+*   **CC 36 :** Saves the current configuration to EEPROM if a value of 127 is received.
+*   **CC 37 ::** Loads the saved configuration from EEPROM if a value of 127 is received.
+*   *   **CC 38 :**  (values 1-50) Sets DeadZone of Expression Pedal.
+*   **CC 39 :** Midi Output Channel for Expression Pedal.
+*   **CC 40:** Midi Output Channel for Sustain Channel.
 
 **Operational Flow:**
 
@@ -132,16 +112,15 @@ AMIT-EXPRESSO is an Arduino-based project that transforms a standard expression 
 
 **How to Use:**
 
-1.  **Connect Hardware:** Wire the components as described in the "Wiring Diagram" section.
-2.  **Upload Code:** Upload the `AMIT-EXPRESSO.ino` sketch to the Arduino Micro Pro using the Arduino IDE.
-3.  **Configure CCs:**
+1.  **Upload Code:** Upload the `AMIT-EXPRESSO.ino` sketch to the Arduino Micro Pro using the Arduino IDE.
+2.  **Configure CCs:**
     *   Send MIDI CC messages to the Arduino with the following CC numbers:
         *   CC 33 (setEXP): Set the CC number for the expression pedal.
         *   CC 34 (setSustain): Set the CC number for the sustain pedal.
         *   CC 35 (pedalReset): Send an even value to reset to defaults.
         *   CC 36 (pedalSave): Send 127 to save the current config.
         *   CC 37 (pedalLoad): Send 127 to load the saved config.
-4.  **Use with DAW:** Connect the Arduino to your computer via USB. It will appear as a MIDI device. Configure your DAW to receive MIDI input from the Arduino.
+3.  **Use with DAW:** Connect the Arduino to your computer via USB. It will appear as a MIDI device. Configure your DAW to receive MIDI input from the Arduino.
 
 **Potential Improvements:**
 
@@ -161,6 +140,7 @@ AMIT-EXPRESSO is an Arduino-based project that transforms a standard expression 
 *   Amit Talwar (www.amitszone.com)
 
 ---
+
 **NOTES**
 *   Gemini AI was used to generate the documentation
-*   If you want this arduini to show as Amits Expresso Midi controoler or your desireable product name, copy the inluced hardware folder to your Doucments/Arduino folder. If the Folder alredy exiss, copy the contents of included hardware folder to your Documents/Arduino/hardware folder. You can Ediit the boards.txt file to change the Name.
+*   If you want this arduino to show as Amits Expresso Midi controller or your desireable product name, copy the incluced hardware folder to your Documents/Arduino folder. If the Folder alredy exiss, copy the contents of included hardware folder to your Documents/Arduino/hardware folder. You can Ediit the boards.txt file to change the Name.

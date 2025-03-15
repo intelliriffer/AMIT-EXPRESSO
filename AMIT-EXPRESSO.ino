@@ -1,199 +1,285 @@
-
 /**
-Author: Amit Talwar.
-License : Do whatever the F*** you want for Personal Use, but selling it to others for Profit is prohibited!
-Board Used : Arduino Micro Pro (Leonardo)
-Description: Expression pedal to Programmable Usb Midi Pedal Converter with Damper/Sustain Pedal / Switch Inpute
+ * @file AMIT-EXPRESSO.ino
+ * @brief Main Arduino sketch for the AMIT-EXPRESSO project, a programmable USB MIDI expression pedal converter.
+ * @author Amit Talwar (www.amitszone.com)
+ * @license Personal Use: Free to use for personal, non-commercial purposes.
+ *          Commercial Use: Prohibited from building and selling this project for profit.
+ * @version 1.0
+ * @date 2025-03-14
+ *
+ * @details This sketch transforms an analog expression pedal into a programmable USB MIDI controller.
+ *          It also supports a sustain/damper pedal input. The project is designed for the Arduino Micro Pro (Leonardo).
+ *
+ * @section Features
+ *   - Converts analog expression pedal movements into MIDI Control Change (CC) messages.
+ *   - Accepts a standard sustain pedal (switch) and sends MIDI CC messages accordingly.
+ *   - Programmable CC assignments for both expression and sustain pedals via incoming MIDI messages.
+ *   - Dead zone adjustment to compensate for low-precision potentiometers.
+ *   - EEPROM storage for persistent CC assignments across power cycles.
+ *   - MIDI input handling for configuration.
+ *   - USB MIDI output for compatibility with DAWs and MIDI-enabled software.
+ *   - Customizable board ID.
+ *
+ * @section Components
+ *   - Arduino Micro Pro (Leonardo)
+ *   - Analog expression pedal
+ *   - Mono input jack for sustain pedal
+ *   - 10k resistor
+ *   - Connection wires
+ *
+ * @section Wiring
+ *   - **Sustain Pedal Input:**
+ *     - Solder a 10k resistor between pin 2 and Ground (GND) on the Arduino.
+ *     - Solder a wire from pin 2 to the tip lug of the input jack.
+ *     - Connect a wire from the VCC pin to the outer lug of the input jack.
+ *   - **Expression Pedal:**
+ *     - Connect the ground wire from the expression pedal to GND on the Arduino.
+ *     - Connect the center lug wire to pin A0 (18) on the Arduino.
+ *     - Connect the other wire to VCC on the Arduino. (You might need to swap the wire connections if it doesn't work correctly).
+ *
+ * @section Customization
+ *   - To change the device name (e.g., "Amits Expresso Midi controller"), copy the `hardware` folder to your `Documents/Arduino` folder.
+ *     If the folder already exists, copy the contents of the included `hardware` folder to your `Documents/Arduino/hardware` folder.
+ *     Edit the `boards.txt` file to change the name.
+ */
 
-Components Requirements:
-
-1: An Expression pedal To Convert (I used a cheap nektar  Expression Peaal as it plastic body is easier to burn hole in for sustin pedal input jack.   )
-
-2: A Mono Input jack (for sustain pedal)
-3: 10k resistor
-4: Connection wires
-5: Arduino Micro 
-
-Wiring:
-1: Solder a 10k resistor between pin 2 and Ground (gnd). on Arduino
-2: Solder a wire to pin 2 of board to tip lig of Input Jack.
-3: connect a wire from vcc pin to outer lug or Input Jack.
-4: Your expression pedal should have three wires or connectors (you might as well want to bypass the polarity switch).
-  connect the black or ground wire from your expression pedal ports to gnd on arduino.
-  connect the center lug wire to pin A0 (18) on Arduino
-  Conenct the Other wire to vcc on arduino. (you might have to swap the wire connection if these does not work correctly);
-
-You Device should appear as Arduino Leonardo in your Device. however you can use custom ID and identifiers if you so desire..
-by copying the hardware Folder in your Documents/Arduino Folder and restart Arduino IDE and choosintg Amits Expresso as Board for Connected Device.
-
-**/
-
-#include <MIDI.h>
-#include <USB-MIDI.h>
 #include "ATPOTS.h"
 #include <EEPROM.h>
+#include <MIDI.h>
+#include <USB-MIDI.h>
 
-
-
+// Create a default USBMIDI instance.
 USBMIDI_CREATE_DEFAULT_INSTANCE();
 
 // ========== Pin Configuration ==========
-#define pEXP 18  //A0 19 20 21
-#define pSUSTAIN 2
-#define blinker 9  // led pinf for tempo blink led
-#define MIDI_CH 1
-#define debounceMS 50
-#define setEXP 33      //value of cc 13 will set what expression pedal controls value of zero disables function
-#define setSustain 34  //value of cc 15 controls what damper switch will control; value of 0 disables!
-#define pedalReset 35  // even values will set pedal to default values;
-#define pedalSave 36   // value of 127 will save current config to pedal.
-#define pedalLoad 37   // value of 127 will load Saved config from pedal!
-#define setLOW 0
-#define setHIGH 110  //limit cc setup within these values.
-#define pedalDeadZone 10 //if your pedal has issues going to absolute zero or full values a 10%, tweaking deadzome might bring it in usable proximity.
+#define pEXP 18 ///< Analog pin for the expression pedal (A0).
+#define pSUSTAIN 2 ///< Digital pin for the sustain pedal.
+#define blinker 9 ///< LED pin for potential tempo blink (not currently used).
+#define MIDI_CH 11 ///< Default MIDI channel.
+#define debounceMS 50 ///< Debounce time for the sustain pedal in milliseconds.
 
+// ========== MIDI CC Configuration ==========
+#define setEXP 33 ///< MIDI CC number to set the expression pedal's CC number.
+#define setSustain 34 ///< MIDI CC number to set the sustain pedal's CC number.
+#define pedalReset 35 ///< MIDI CC number to reset the pedal to default settings (even values).
+#define pedalSave 36 ///< MIDI CC number to save the current configuration to EEPROM (value 127).
+#define pedalLoad 37 ///< MIDI CC number to load the saved configuration from EEPROM (value 127).
+#define pedalDeadZone 38 ///< MIDI CC number to set the dead zone for the expression pedal (values 1-50).
+#define pedalExpCh 39 ///< MIDI CC number to set the MIDI output channel for the expression pedal (values 1-16).
+#define pedalSustainCh 40 ///< MIDI CC number to set the MIDI output channel for the sustain pedal (values 1-16).
 
-ATPOT POT(pEXP, 0, 127, 10);
+// ========== CC Value Limits ==========
+#define setLOW 0 ///< Lower limit for settable CC values.
+#define setHIGH 110 ///< Upper limit for settable CC values.
 
-// ========== MIDI Configuration ==========
-const byte SUSTAIN_CC = 64;
-const byte EXP_CC = 11;
-const char ID[] = "AEXPR";
-byte ECC = EXP_CC;
-byte SCC = SUSTAIN_CC;
+// ========== Default MIDI CC Assignments ==========
+const byte SUSTAIN_CC = 64; ///< Default CC number for the sustain pedal.
+const byte EXP_CC = 11; ///< Default CC number for the expression pedal.
 
-byte lastState = LOW;
-unsigned long lastScan = 0;
-bool currentState = LOW;
+// ========== Board Identifier ==========
+const char ID[] = "ATEXPSO"; ///< Unique identifier for the board.
 
+// ========== Default Dead Zone ==========
+const float DEADZONE = 10.00f; ///< Default dead zone percentage for the expression pedal.
 
+// ========== Global Variables ==========
+byte ECC = EXP_CC; ///< Current CC number for the expression pedal.
+byte SCC = SUSTAIN_CC; ///< Current CC number for the sustain pedal.
+byte expCH = MIDI_CH; ///< Current MIDI channel for the expression pedal.
+byte sustainCH = MIDI_CH; ///< Current MIDI channel for the sustain pedal.
+byte lastState = LOW; ///< Last known state of the sustain pedal.
+unsigned long lastScan = 0; ///< Timestamp of the last sustain pedal scan.
+bool currentState = LOW; ///< Current state of the sustain pedal.
+
+/**
+ * @brief Structure to store the pedal's configuration settings.
+ */
 struct PEDALSTATE {
-  byte ECC;
-  byte SCC;
-  char ID[sizeof(ID)];
+    byte ECC; ///< Expression pedal CC number.
+    byte SCC; ///< Sustain pedal CC number.
+    byte CH_EXPRESSION; ///< MIDI channel for the expression pedal.
+    byte CH_SUSTAIN; ///< MIDI channel for the sustain pedal.
+    float DEADZONE; ///< Dead zone percentage for the expression pedal.
+    char ID[sizeof(ID)]; ///< Board identifier.
 };
 
+// Create an instance of the ATPOT class for the expression pedal.
+ATPOT POT(pEXP, 0, 127, DEADZONE);
 
-void handleMidiInput() {
+/**
+ * @brief Handles incoming MIDI messages to configure the pedal.
+ *
+ * @details This function processes MIDI Control Change messages to:
+ *          - Set the CC number for the expression pedal.
+ *          - Set the CC number for the sustain pedal.
+ *          - Reset the pedal to default settings.
+ *          - Save the current configuration to EEPROM.
+ *          - Load the saved configuration from EEPROM.
+ *          - Set the dead zone for the expression pedal.
+ *          - Set the MIDI channel for the expression pedal.
+ *          - Set the MIDI channel for the sustain pedal.
+ */
+void handleMidiInput()
+{
+    if (!MIDI.read())
+        return;
 
-  if (MIDI.read()) {
-    // Serial.print("MIDI Type: ");
-    // Serial.print(MIDI.getType());
-    // Serial.print(" | Data1: ");
-    // Serial.print(MIDI.getData1());
-    // Serial.print(" | Data2: ");
-    // Serial.println(MIDI.getData2());
+    if (MIDI.getType() != midi::ControlChange)
+        return;
 
-    if (MIDI.getType() == midi::ControlChange) {
-      byte data = constrain(MIDI.getData2(), setLOW, setHIGH);
+    byte data = constrain(MIDI.getData2(), setLOW, setHIGH);
 
-      if (MIDI.getData1() == setEXP) {
+    if (MIDI.getData1() == setEXP) {
         ECC = data;
-      }
-      if (MIDI.getData1() == setSustain) {
-        SCC = data;
-      }
-      if (MIDI.getData1() == pedalReset) {
-        if (data % 2 == 0)
-          initPedal();
-      }
-      if (MIDI.getData1() == pedalSave && MIDI.getData2() == 127) {
-        saveConfig();
-      }
-      if (MIDI.getData1() == pedalLoad && MIDI.getData2()== 127) {
-        loadConfig();
-      }
+        return;
     }
-  }
+    if (MIDI.getData1() == setSustain) {
+        SCC = data;
+        return;
+    }
+    if (MIDI.getData1() == pedalReset) {
+        if (data % 2 == 0)
+            initPedal();
+        return;
+    }
+    if (MIDI.getData1() == pedalSave && MIDI.getData2() == 127) {
+        saveConfig();
+        return;
+    }
+    if (MIDI.getData1() == pedalLoad && MIDI.getData2() == 127) {
+        loadConfig();
+        return;
+    }
+    if (MIDI.getData1() == pedalDeadZone) {
+        POT.setDeadZone((float)constrain(MIDI.getData2(), 1, 50));
+        return;
+    }
+    if (MIDI.getData1() == pedalExpCh) {
+        expCH = constrain(MIDI.getData2(), 1, 16);
+        return;
+    }
+    if (MIDI.getData1() == pedalSustainCh) {
+        sustainCH = constrain(MIDI.getData2(), 1, 16);
+        return;
+    }
 }
 
-void initPedal() {  //reset pedal to defaults
-  ECC = EXP_CC;
-  SCC = SUSTAIN_CC;
+/**
+ * @brief Initializes the pedal to its default settings.
+ *
+ * @details This function resets the expression and sustain pedal CC numbers,
+ *          MIDI channels, and the dead zone to their default values.
+ */
+void initPedal()
+{
+    ECC = EXP_CC;
+    SCC = SUSTAIN_CC;
+    expCH = MIDI_CH;
+    sustainCH = MIDI_CH;
+    POT.setDeadZone(DEADZONE);
 }
 
-void setup() {
-  pinMode(blinker, OUTPUT);
-  pinMode(pSUSTAIN, INPUT_PULLUP);
-  initPedal();
+/**
+ * @brief Arduino setup function.
+ *
+ * @details Initializes pin modes, serial communication, MIDI, and loads the configuration from EEPROM.
+ */
+void setup()
+{
+    pinMode(blinker, OUTPUT);
+    pinMode(pSUSTAIN, INPUT_PULLUP);
+    initPedal();
 
-  // pinMode(SW_PIN, INPUT_PULLUP);  // Rotary Encoder Button
-  digitalWrite(blinker, LOW);
-  // Serial.begin(115200);  // Debugging output
-  // while (!Serial) {
-  //   ;  // wait for serial port to connect. Needed for native USB port only
-  // }
-  loadConfig();
-  MIDI.begin(1);  // Start MIDI on channel 1
-  MIDI.turnThruOff();
-}
-void saveConfig() {
-  PEDALSTATE P;
-  P.ECC = ECC;
-  P.SCC = SCC;
-  strcpy(P.ID, ID);
-  EEPROM.put(0, P);
-}
-void loadConfig() {
-  PEDALSTATE PS;
-  EEPROM.get(0, PS);
-  // Serial.println("Checking Saved State");
-  if (String(PS.ID) != String(ID)) {
-    // Serial.println("ID Not found");
-    PS.ECC = EXP_CC;
-    PS.SCC = SUSTAIN_CC;
-    
-    // Serial.println(String(PS.ID));
-    strcpy(PS.ID, ID);
-    // Serial.println(String(PS.ID));
-    EEPROM.put(0, PS);
-  } 
-  // else {
-  //   // Serial.println("Loaded Values from EEPROM");
-  //   Serial.println(PS.ECC);
-  //   Serial.println(PS.SCC);
-  //   Serial.println(PS.ID);
-  // }
-  ECC = PS.ECC;
-  SCC = PS.SCC;
+    digitalWrite(blinker, LOW);
+
+    loadConfig();
+    MIDI.begin(1); // Start MIDI on channel 1
+    MIDI.turnThruOff();
 }
 
-
-void handleSustain() {
-  unsigned long now = millis();
-  if ((now - lastScan) < debounceMS) {
-    return;
-  }
-
-  //  Serial.print("Reading Button with currentState: ");
-  byte state = digitalRead(pSUSTAIN);
-  // Serial.println(state);
-  //  Serial.println(lastState);
-  lastScan = now;
-  if (state != lastState) {
-    // Serial.print("State Changed from: ");
-    // Serial.print(lastState);
-    // Serial.print(" to: ");
-    // Serial.println(state);
-    if (SCC)
-      MIDI.sendControlChange(SCC, state == 1 ? 127 : 0, MIDI_CH);
-    lastState = state;
-  }
+/**
+ * @brief Saves the current pedal configuration to EEPROM.
+ *
+ * @details Stores the expression pedal CC number, sustain pedal CC number,
+ *          MIDI channels, dead zone, and board identifier in EEPROM.
+ */
+void saveConfig()
+{
+    PEDALSTATE P;
+    P.ECC = ECC;
+    P.SCC = SCC;
+    P.CH_EXPRESSION = expCH;
+    P.CH_SUSTAIN = sustainCH;
+    P.DEADZONE = POT.getDeadZone();
+    strcpy(P.ID, ID);
+    EEPROM.put(0, P);
 }
 
+/**
+ * @brief Loads the pedal configuration from EEPROM.
+ *
+ * @details Retrieves the expression pedal CC number, sustain pedal CC number,
+ *          MIDI channels, dead zone, and board identifier from EEPROM.
+ *          If no valid configuration is found, it sets the default values and saves them.
+ */
+void loadConfig()
+{
+    PEDALSTATE PS;
+    EEPROM.get(0, PS);
 
+    if (String(PS.ID) != String(ID)) { // eeprom does not contain initial state
+        PS.ECC = EXP_CC;
+        PS.SCC = SUSTAIN_CC;
+        PS.CH_EXPRESSION = MIDI_CH;
+        PS.CH_SUSTAIN = MIDI_CH;
+        PS.DEADZONE = DEADZONE;
+        strcpy(PS.ID, ID);
+        EEPROM.put(0, PS);
+    }
 
-void loop() {
+    ECC = PS.ECC;
+    SCC = PS.SCC;
+    expCH = PS.CH_EXPRESSION;
+    sustainCH = PS.CH_SUSTAIN;
+    POT.setDeadZone(PS.DEADZONE);
+}
 
-  POT.scan();
-  if (POT.hasChanged) {
-    // Serial.print("Pot has Value of: ");
-    if (ECC)
-      MIDI.sendControlChange(ECC, POT.value, MIDI_CH);
-    //Serial.println(POT.value);
-    POT.reset();
-  }
-  handleSustain();
-  handleMidiInput();
-  //handleEncoderSwitch();
+/**
+ * @brief Handles the sustain pedal input.
+ *
+ * @details Reads the state of the sustain pedal and sends a MIDI CC message
+ *          when the state changes. Implements debouncing to prevent spurious readings.
+ */
+void handleSustain()
+{
+    unsigned long now = millis();
+    if ((now - lastScan) < debounceMS) {
+        return;
+    }
+
+    byte state = digitalRead(pSUSTAIN);
+    lastScan = now;
+    if (state != lastState) {
+        if (SCC)
+            MIDI.sendControlChange(SCC, state == 1 ? 127 : 0, sustainCH);
+        lastState = state;
+    }
+}
+
+/**
+ * @brief Arduino main loop function.
+ *
+ * @details Continuously scans the expression pedal, handles the sustain pedal,
+ *          and processes incoming MIDI messages.
+ */
+void loop()
+{
+    POT.scan();
+    if (POT.hasChanged) {
+        if (ECC)
+            MIDI.sendControlChange(ECC, POT.value, expCH);
+        POT.reset();
+    }
+    handleSustain();
+    handleMidiInput();
 }
