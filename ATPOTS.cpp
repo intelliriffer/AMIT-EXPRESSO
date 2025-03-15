@@ -31,6 +31,27 @@ ATPOT::ATPOT(byte pin, int minVal, int maxVal, float deadZonePercent)
 }
 
 /**
+ * @brief Constructor for the ATPOT class.
+ *
+ * @param pin The analog pin connected to the potentiometer.
+ * @param minVal The minimum output value of the potentiometer.
+ * @param maxVal The maximum output value of the potentiometer.
+ * @param deadZonePercent The dead zone percentage to compensate for low-precision potentiometers.
+ *
+ * @details Initializes the potentiometer with custom minimum and maximum values, and a dead zone.
+ *          The dead zone is calculated as a percentage of the total range (0-1023).
+ */
+ATPOT::ATPOT(byte pin, int minVal, int maxVal, float deadZonePercent, void (*handler)(byte, byte))
+{
+    _minVal = minVal;
+    _maxVal = maxVal;
+    _deadZonePercent = deadZonePercent;
+    _pin = pin;
+    _deadZoneFactor = MAX_ANALOG_POT_READING * _deadZonePercent / 100;
+    setChangeHandler(handler);
+}
+
+/**
  * @brief Constructor for the ATPOT class with a dead zone.
  *
  * @param pin The analog pin connected to the potentiometer.
@@ -152,11 +173,12 @@ void ATPOT::scan()
     int val = aRead();
 
     val = constrain(map(val, _deadZoneFactor, MAX_ANALOG_POT_READING - _deadZoneFactor, 0, MAX_ANALOG_POT_READING), 0, MAX_ANALOG_POT_READING);
-    value = map(val, 0, MAX_ANALOG_POT_READING, _minVal, _maxVal);
-    if (value != _lastReading) {
-        _lastReading = value;
+    int newValue = map(val, 0, MAX_ANALOG_POT_READING, _minVal, _maxVal);
+    if (newValue != _lastReading) {
+        byte oldVal = _lastReading;
+        _lastReading = newValue;
         rawValue = val;
-        changed();
+        changed(newValue, oldVal);
     }
     //_lastReading = value;
 }
@@ -178,10 +200,27 @@ void ATPOT::reset()
  *          It can be overridden in derived classes to perform custom actions when the value changes.
  *          Sets the `hasChanged` flag to true.
  */
-void ATPOT::changed()
+void ATPOT::changed(byte newValue, byte oldValue)
 {
     hasChanged = true;
     //  Serial.println("base");
+    if (_changeHandler != nullptr) {
+        _changeHandler(newValue, oldValue); // Call the registered handler
+        reset(); // reset state as its been handled
+    }
+}
+
+/**
+ * @brief Sets the change handler function.
+ *
+ * @param handler A pointer to the function to be called when the potentiometer's value changes.
+ *
+ * @details This function allows you to register a callback function that will be called
+ *          whenever the potentiometer's value changes.
+ */
+void ATPOT::setChangeHandler(void (*handler)(byte, byte))
+{
+    _changeHandler = handler;
 }
 
 /**
@@ -272,16 +311,21 @@ ATMIDICCPOT::ATMIDICCPOT(byte pin, byte ch, byte cc)
  *          If a custom value array is used, the mapped index in the array is used as the value.
  *          The MIDI message is sent over the hardware serial port.
  */
-void ATMIDICCPOT::changed()
+void ATMIDICCPOT::changed(byte newValue, byte oldValue)
 {
     //  Serial.println("pot changed");
-    byte _value = value;
+    byte _value = newValue;
 
     if (valueType) {
-        byte index = map(value, 0, 127, 0, _count - 1);
+        byte index = map(newValue, 0, 127, 0, _count - 1);
         _value = _varr[index];
     }
     Serial.write(_mesg);
     Serial.write(_cc);
     Serial.write(constrain(_value, 0, 127));
+
+    if (_changeHandler != nullptr) {
+        _changeHandler(_value, oldValue); // Call the registered handler
+        reset();
+    }
 }

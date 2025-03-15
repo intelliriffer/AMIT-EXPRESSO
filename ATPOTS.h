@@ -47,6 +47,19 @@ public:
     ATPOT(byte pin, float deadZonePercent);
 
     /**
+     * @brief Constructor for the ATPOT class with custom minimum and maximum values and a dead zone.
+     *
+     * @param pin The analog pin connected to the potentiometer.
+     * @param minVal The minimum output value of the potentiometer.
+     * @param maxVal The maximum output value of the potentiometer.
+     * @param deadZonePercent The dead zone percentage to compensate for low-precision potentiometers (0.0 - 100.0).
+     * @param handler function to handleChanged Event
+     * @details Initializes the potentiometer with custom minimum and maximum values, and a dead zone.
+     *          The dead zone is calculated as a percentage of the total range (0-1023).
+     */
+    ATPOT(byte pin, int minVal, int maxVal, float deadZonePercent, void (*handler)(byte, byte));
+
+    /**
      * @brief Basic constructor for the ATPOT class with default minimum/maximum values and no dead zone.
      *
      * @param pin The analog pin connected to the potentiometer.
@@ -124,6 +137,15 @@ public:
      * @details Sets the `hasChanged` flag to false. This should be called after processing a change.
      */
     void reset();
+    /**
+     * @brief Sets the change handler function.
+     *
+     * @param handler A pointer to the function to be called when the potentiometer's value changes.
+     *
+     * @details This function allows you to register a callback function that will be called
+     *          whenever the potentiometer's value changes.
+     */
+    void setChangeHandler(void (*handler)(byte, byte));
 
 protected:
     /**
@@ -133,7 +155,7 @@ protected:
      *          It can be overridden in derived classes to perform custom actions when the value changes.
      *          Sets the `hasChanged` flag to true.
      */
-    virtual void changed();
+    virtual void changed(byte newValue, byte oldValue);
 
     /**
      * @brief The minimum output value of the potentiometer.
@@ -164,6 +186,10 @@ protected:
      * @brief The calculated dead zone factor.
      */
     int _deadZoneFactor = 0;
+    /**
+     * @brief Pointer to the function that will be called when the potentiometer's value changes.
+     */
+    void (*_changeHandler)(byte, byte) = nullptr;
 
 private:
     /**
@@ -252,7 +278,7 @@ public:
      *          It sends a MIDI CC message with the assigned CC number and the mapped value.
      *          If a custom value array is used, the mapped index in the array is used as the value.
      */
-    virtual void changed() override; // Added override
+    virtual void changed(byte newValue, byte oldValue);
 
 private:
     /**
