@@ -1,0 +1,63 @@
+leonardoamit.name=Arduino Amit Expresso
+        
+leonardoamit.upload.tool=arduino:avrdude
+leonardoamit.upload.protocol=avr109
+leonardoamit.upload.maximum_size=28672
+leonardoamit.upload.maximum_data_size=2560
+leonardoamit.upload.speed=57600
+leonardoamit.upload.disable_flushing=true
+leonardoamit.upload.use_1200bps_touch=true
+leonardoamit.upload.wait_for_upload_port=true
+leonardoamit.bootloader.tool=arduino:avrdude
+leonardoamit.bootloader.low_fuses=0xff
+leonardoamit.bootloader.high_fuses=0xd8
+leonardoamit.bootloader.extended_fuses=0xcb
+leonardoamit.bootloader.file=caterina/Caterina-Leonardo.hex
+leonardoamit.bootloader.unlock_bits=0x3F
+leonardoamit.bootloader.lock_bits=0x2F     
+leonardoamit.build.mcu=atmega32u4
+leonardoamit.build.f_cpu=16000000L
+
+
+leonardoamit.build.vid=0x7791
+leonardoamit.build.pid=0x7790
+leonardoamit.build.usb_product="Amits Expresso"
+
+
+leonardoamit.build.usb_manufacturer="Amit Talwar"
+leonardoamit.build.board=AVR_LEONARDO
+leonardoamit.build.core=arduino:arduino
+leonardoamit.build.variant=arduino:leonardo
+leonardoamit.build.extra_flags={build.usb_flags}
+
+
+
+microamit.name=Arduino Micro Amit
+
+microamit.upload.tool=arduino:avrdude
+microamit.upload.protocol=avr109
+microamit.upload.maximum_size=28672
+microamit.upload.maximum_data_size=2560
+microamit.upload.speed=57600
+microamit.upload.disable_flushing=true
+microamit.upload.use_1200bps_touch=true
+microamit.upload.wait_for_upload_port=true
+microamit.bootloader.tool=arduino:avrdude
+microamit.bootloader.low_fuses=0xff
+microamit.bootloader.high_fuses=0xd8
+microamit.bootloader.extended_fuses=0xcb
+microamit.bootloader.file=caterina/Caterina-Micro.hex
+microamit.bootloader.unlock_bits=0x3F
+microamit.bootloader.lock_bits=0x2F
+microamit.build.mcu=atmega32u4
+microamit.build.f_cpu=16000000L
+
+microamit.build.vid=0x2340
+microamit.build.pid=0x8030
+microamit.build.usb_product="Arduino Micro Amit"
+
+microamit.build.board=AVR_MICRO
+microamit.build.core=arduino:arduino
+microamit.build.variant=arduino:micro
+microamit.build.extra_flags={build.usb_flags}
+
