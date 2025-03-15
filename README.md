@@ -20,6 +20,10 @@ I directly converted a normal Nektar NX-P Expression Pedal into Usb Pedal by rem
 *   **USB MIDI Output:** Sends MIDI messages over USB, making it compatible with most DAWs and MIDI-enabled software.
 * **Customizable Board ID:** Allows for custom board ID and identifiers.
 
+**Wiring Diagram**
+
+![wiring diagram](wiring-diagram.jpg?raw=true "Amits Expresso Wiring Diagram")
+
 **Software Components:**
 
 1.  **Arduino IDE:** The development environment for programming the Arduino.
