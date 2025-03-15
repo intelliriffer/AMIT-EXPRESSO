@@ -6,7 +6,7 @@
 
 AMIT-EXPRESSO is an Arduino-based project that transforms a standard expression pedal into a programmable USB MIDI controller. It also incorporates a sustain/damper pedal input, making it a versatile tool for musicians and producers. The project is designed to be used with an Arduino Micro Pro (Leonardo) board.
 
-I directly converted a normal Nektar NX-P Expression Pedal into Usb Pedal Py remving its original cable in putting the arduino board with a micro usb cable atached to it inside the pedal itself. However you can use this with any pedal by using a stereo input jack and wiring its three pins (tip , ring and sleeve) as per the wiring diagram image. and mounting that a lgon with arduino controller into some box. (use a plastic or insulated box for sustain jack (mono audio jack) so it does not short with ground of expession jack)
+I directly converted a normal Nektar NX-P Expression Pedal into Usb Pedal by removing its original cable in putting the arduino board with a micro usb cable attached to it inside the pedal itself. However you can use this with any pedal by using a stereo input jack and wiring its three pins (tip , ring and sleeve) as per the wiring diagram image. and mounting that a lgon with arduino controller into some box. (use a plastic or insulated box for sustain jack (mono audio jack) so it does not short with ground of expession jack).
 
 
 **Key Features:**
@@ -64,6 +64,7 @@ I directly converted a normal Nektar NX-P Expression Pedal into Usb Pedal Py rem
         * `hasChanged`: Flag to indicate if the value has changed.
     *   **Methods:**
         *   `ATPOT(byte pin, int minVal, int maxVal, float deadZonePercent)`: Constructor with custom min/max and dead zone.
+        *   `ATPOT(byte pin, int minVal, int maxVal, float deadZonePercent,void (*handler)(byte, byte))`: Constructor with custom min/max and dead zone and a callBack function to call on value change.
         *   `ATPOT(byte pin, float deadZonePercent)`: Constructor with a dead zone.
         *   `ATPOT(byte pin)`: Basic constructor.
         *   `scan()`: Reads the potentiometer, applies the dead zone, maps the value, and triggers `changed()` if the value has changed.
@@ -85,16 +86,16 @@ I directly converted a normal Nektar NX-P Expression Pedal into Usb Pedal Py rem
         *   `INIT(byte ch, byte cc, byte *values, byte count)`: Initializes the MIDI channel, CC number, and a custom value array.
         *   `changed()`: Overrides the `ATPOT::changed()` method to send MIDI CC messages.
 
-**MIDI Control Change (CC) Assignments:**
+**MIDI Control Change (CC) Implementation:**
 
 *   **CC 33 :** Sets the MIDI CC number (0-110) for the expression pedal. A value of 0 disables the expression pedal.
 *   **CC 34 :** Sets the MIDI CC number (0-110) for the sustain pedal. A value of 0 disables the sustain pedal.
 *   **CC 35 :** Resets the pedal to default settings if an even value is received.
 *   **CC 36 :** Saves the current configuration to EEPROM if a value of 127 is received.
 *   **CC 37 ::** Loads the saved configuration from EEPROM if a value of 127 is received.
-*   *   **CC 38 :**  (values 1-50) Sets DeadZone of Expression Pedal.
-*   **CC 39 :** Midi Output Channel for Expression Pedal.
-*   **CC 40:** Midi Output Channel for Sustain Channel.
+*   **CC 38 :**  (values 1-50) Sets DeadZone of Expression Pedal.
+*   **CC 39 :** Sets Midi Output Channel for Expression Pedal.
+*   **CC 40:** Sets Midi Output Channel for Sustain Pedal.
 
 **Operational Flow:**
 
@@ -145,5 +146,5 @@ I directly converted a normal Nektar NX-P Expression Pedal into Usb Pedal Py rem
 ---
 
 **NOTES**
-*   Gemini AI was used to generate the documentation
+*   Gemini AI was used to generate this documentation and Code Comments.
 *   If you want this arduino to show as Amits Expresso Midi controller or your desireable product name, copy the incluced hardware folder to your Documents/Arduino folder. If the Folder alredy exiss, copy the contents of included hardware folder to your Documents/Arduino/hardware folder. You can Ediit the boards.txt file to change the Name.
