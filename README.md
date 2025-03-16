@@ -4,9 +4,9 @@
 
 **Project Description:**
 
-AMIT-EXPRESSO is an Arduino-based project that transforms a standard expression pedal into a programmable USB MIDI controller. It also incorporates a sustain/damper pedal input, making it a versatile tool for musicians and producers. The project is designed to be used with an Arduino Micro Pro (Leonardo) board.
+AMIT-EXPRESSO is an Arduino-based project that transforms a standard expression pedal into a programmable USB MIDI Foot pedal. It also incorporates a sustain/damper pedal input. My Primary use was to use with Akai Force but it also works with other gear/ios/pc/mac. The project is designed to be used with an Arduino Micro Pro (Leonardo) board.
 
-I directly converted a normal Nektar NX-P Expression Pedal into Usb Pedal by removing its original cable in putting the arduino board with a micro usb cable attached to it inside the pedal itself. However you can use this with any pedal by using a stereo input jack and wiring its three pins (tip , ring and sleeve) as per the wiring diagram image. and mounting that a along with arduino controller and a sustain pedal jack into some box. (use a plastic or insulated box for sustain jack (mono audio jack) so it does not short with ground of expession jack).
+I directly converted one of my Nektar NX-P Expression Pedala into Usb Midi Pedal by removing its original cable in putting the arduino board with a micro usb cable attached to it inside the pedal itself. However you can use this with any pedal by using a stereo input jack and wiring its three pins (tip , ring and sleeve) as per the wiring diagram image. and mounting that a along with arduino controller and a sustain pedal jack into some box. (use a plastic or insulated box for sustain jack (mono audio jack) so it does not short with ground of expession jack).
 
 
 **Key Features:**
@@ -20,9 +20,15 @@ I directly converted a normal Nektar NX-P Expression Pedal into Usb Pedal by rem
 *   **USB MIDI Output:** Sends MIDI messages over USB, making it compatible with most DAWs and MIDI-enabled software.
 * **Customizable Board ID:** Allows for custom board ID and identifiers.
 
-**Wiring Diagram**
-
+**Wiring Diagram and Images**
+*   Arduino Wiring Diagram
 ![wiring diagram](wiring-diagram.jpg?raw=true "Amits Expresso Wiring Diagram")
+*   Nektar NX-P Internal Wiring (if you want to install inside this pedal).
+![Nektar NX-P Internal Wiring](nektar-nx-p-internal-wiring.jpg?raw=true "Amits Expresso Nektar NX-P Internal Wiring Diagram")
+
+*   Amits Expresso Nektar NX-P External View (with Sustain/Damper Pedal input jack).
+![Nektar NX-P Internal Wiring](nektar-nx-p-exterior-amits-expresso.jpg?raw=true "Amits Expresso Nektar NX-P External View")
+
 
 **Software Components:**
 
@@ -53,42 +59,6 @@ I directly converted a normal Nektar NX-P Expression Pedal into Usb Pedal by rem
     *   Implements the methods of the `ATPOT` and `ATMIDICCPOT` classes.
     *   Includes functions for reading analog values, applying dead zones, mapping values, and sending MIDI CC messages.
 
-**Class Descriptions:**
-
-*   **`ATPOT`:**
-    *   **Purpose:** Represents a generic potentiometer.
-    *   **Members:**
-        *   `_minVal`, `_maxVal`: Minimum and maximum output values.
-        *   `_pin`: The analog pin connected to the potentiometer.
-        *   `_lastReading`: The last read value.
-        *   `_deadZonePercent`: The percentage of the dead zone.
-        *   `_deadZoneFactor`: The calculated dead zone range.
-        * `rawValue`: The raw value from the analog read.
-        * `value`: The mapped value.
-        * `hasChanged`: Flag to indicate if the value has changed.
-    *   **Methods:**
-        *   `ATPOT(byte pin, int minVal, int maxVal, float deadZonePercent)`: Constructor with custom min/max and dead zone.
-        *   `ATPOT(byte pin, int minVal, int maxVal, float deadZonePercent,void (*handler)(byte, byte))`: Constructor with custom min/max and dead zone and a callBack function to call on value change.
-        *   `ATPOT(byte pin, float deadZonePercent)`: Constructor with a dead zone.
-        *   `ATPOT(byte pin)`: Basic constructor.
-        *   `scan()`: Reads the potentiometer, applies the dead zone, maps the value, and triggers `changed()` if the value has changed.
-        *   `reset()`: Resets the `hasChanged` flag.
-        *   `changed()`: Virtual method called when the value changes.
-        *   `aRead()`: Reads the analog pin and averages multiple readings.
-*   **`ATMIDICCPOT`:**
-    *   **Purpose:** Represents a potentiometer that sends MIDI CC messages.
-    *   **Inheritance:** Inherits from `ATPOT`.
-    *   **Members:**
-        *   `_mesg`: The MIDI message type (Control Change).
-        *   `_cc`: The MIDI CC number.
-        *   `_varr`: An array of values to use for the pot.
-        *   `_count`: The size of the `_varr` array.
-        * `valueType`: Flag to indicate if the pot uses a value array.
-    *   **Methods:**
-        *   `ATMIDICCPOT(byte pin, byte ch, byte cc)`: Constructor.
-        *   `INIT(byte ch, byte cc)`: Initializes the MIDI channel and CC number.
-        *   `INIT(byte ch, byte cc, byte *values, byte count)`: Initializes the MIDI channel, CC number, and a custom value array.
-        *   `changed()`: Overrides the `ATPOT::changed()` method to send MIDI CC messages.
 
 **MIDI Control Change (CC) Implementation:**
 
@@ -130,13 +100,6 @@ I directly converted a normal Nektar NX-P Expression Pedal into Usb Pedal by rem
         *   CC 37 (pedalLoad): Send 127 to load the saved config.
 3.  **Use with DAW:** Connect the Arduino to your computer via USB. It will appear as a MIDI device. Configure your DAW to receive MIDI input from the Arduino.
 
-**Potential Improvements:**
-
-*   **Multiple Expression Pedals:** Add support for more than one expression pedal.
-*   **More Programmable Switches:** Add more switch inputs for additional control.
-*   **LED Feedback:** Use LEDs to provide visual feedback on the pedal's state.
-*   **Encoder Support:** Add support for rotary encoders for more complex control.
-* **Web Interface:** Create a web interface for configuration.
 
 **License:**
 
